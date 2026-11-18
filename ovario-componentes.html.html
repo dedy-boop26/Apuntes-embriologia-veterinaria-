@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Componentes Celulares del Ovario</title>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border-subtle: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --germ-primary: #e11d48;
+      --germ-light: #ffe4e6;
+      --germ-mid: #fda4af;
+      --som-primary: #0d9488;
+      --som-dark: #115e59;
+      --som-light: #ccfbf1;
+      --som-mid: #5eead4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      background: var(--bg-card);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    /* Top Header & Interactive Filter */
+    .header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: linear-gradient(to right, #ffffff, #f8fafc);
+    }
+
+    .title-group h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .title-group p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 5px;
+      border-radius: 12px;
+    }
+
+    .btn-filter {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-filter:hover {
+      color: var(--text-main);
+    }
+
+    .btn-filter.active {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot-germ { background: var(--germ-primary); }
+    .dot-som { background: var(--som-primary); }
+    .dot-all {
+      background: linear-gradient(135deg, var(--germ-primary) 50%, var(--som-primary) 50%);
+    }
+
+    /* SVG Canvas Wrapper */
+    .canvas-wrap {
+      width: 100%;
+      padding: 16px;
+      background: #ffffff;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      user-select: none;
+    }
+
+    /* Interactive dim states */
+    .germ-group, .som-group {
+      transition: opacity 0.35s ease, filter 0.35s ease;
+    }
+
+    body.filter-germ .som-group {
+      opacity: 0.16;
+      filter: grayscale(60%);
+    }
+
+    body.filter-som .germ-group {
+      opacity: 0.16;
+      filter: grayscale(60%);
+    }
+
+    .label-title {
+      font-size: 15px;
+      font-weight: 700;
+      fill: #0f172a;
+    }
+
+    .label-sub {
+      font-size: 12px;
+      font-weight: 500;
+      fill: #64748b;
+    }
+
+    .badge-text {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .panel-header {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .pointer-line {
+      stroke: #475569;
+      stroke-width: 1.5;
+      fill: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="title-group">
+        <h1>Estructura del Ovario: Componentes Celulares</h1>
+        <p>Diferenciación visual entre la estirpe germinal y las células somáticas de soporte</p>
+      </div>
+
+      <div class="controls" role="group" aria-label="Filtrar componentes">
+        <button class="btn-filter active" data-filter="all" onclick="setFilter('all', this)">
+          <span class="dot dot-all"></span> Vista completa
+        </button>
+        <button class="btn-filter" data-filter="germ" onclick="setFilter('germ', this)">
+          <span class="dot dot-germ"></span> Componente Germinal
+        </button>
+        <button class="btn-filter" data-filter="som" onclick="setFilter('som', this)">
+          <span class="dot dot-som"></span> Componente Somático
+        </button>
+      </div>
+    </header>
+
+    <div class="canvas-wrap">
+      <svg viewBox="0 0 1200 660" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Arrowhead for germ progression -->
+          <marker id="arrow-germ" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#e11d48" />
+          </marker>
+
+          <!-- Soft gradients -->
+          <radialGradient id="oocyte-grad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ffe4e6" />
+            <stop offset="65%" stop-color="#fda4af" />
+            <stop offset="100%" stop-color="#fb7185" />
+          </radialGradient>
+
+          <radialGradient id="nucleus-grad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#f43f5e" />
+            <stop offset="100%" stop-color="#9f1239" />
+          </radialGradient>
+
+          <radialGradient id="antrum-grad" cx="40%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#f0f9ff" />
+            <stop offset="100%" stop-color="#bae6fd" />
+          </radialGradient>
+
+          <linearGradient id="ovary-stroma" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f0fdfa" />
+            <stop offset="100%" stop-color="#ccfbf1" />
+          </linearGradient>
+
+          <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.06" />
+          </filter>
+        </defs>
+
+        <!-- ========================================================= -->
+        <!-- PANEL 1: COMPONENTE GERMINAL (LEFT)                       -->
+        <!-- ========================================================= -->
+        <g class="germ-group">
+          <rect x="20" y="16" width="320" height="628" rx="18" fill="#fff1f2" stroke="#fecdd3" stroke-width="1.5" />
+          <rect x="20" y="16" width="320" height="48" rx="18" fill="#e11d48" />
+          <rect x="20" y="44" width="320" height="20" fill="#e11d48" />
+          <text x="180" y="46" text-anchor="middle" fill="#ffffff" class="panel-header">1. Componente Germinal</text>
+
+          <!-- Stage 1: CGPs -->
+          <g transform="translate(95, 115)">
+            <circle cx="0" cy="0" r="19" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2" />
+            <circle cx="-3" cy="-2" r="7.5" fill="url(#nucleus-grad)" />
+          </g>
+          <text x="155" y="111" class="label-title">CGPs</text>
+          <text x="155" y="128" class="label-sub">Células germinales primordiales</text>
+          <rect x="285" y="102" width="34" height="20" rx="10" fill="#ffe4e6" stroke="#fb7185" />
+          <text x="302" y="116" text-anchor="middle" fill="#be123c" class="badge-text">2n</text>
+
+          <line x1="95" y1="140" x2="95" y2="174" stroke="#e11d48" stroke-width="2.2" marker-end="url(#arrow-germ)" />
+
+          <!-- Stage 2: Ovogonias -->
+          <g transform="translate(95, 212)">
+            <circle cx="-16" cy="0" r="16" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2" />
+            <circle cx="-16" cy="0" r="6" fill="url(#nucleus-grad)" />
+            <circle cx="16" cy="0" r="16" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2" />
+            <circle cx="16" cy="0" r="6" fill="url(#nucleus-grad)" />
+          </g>
+          <text x="155" y="208" class="label-title">Ovogonias</text>
+          <text x="155" y="225" class="label-sub">Multiplicación mitótica</text>
+          <rect x="285" y="199" width="34" height="20" rx="10" fill="#ffe4e6" stroke="#fb7185" />
+          <text x="302" y="213" text-anchor="middle" fill="#be123c" class="badge-text">2n</text>
+
+          <line x1="95" y1="236" x2="95" y2="274" stroke="#e11d48" stroke-width="2.2" marker-end="url(#arrow-germ)" />
+
+          <!-- Stage 3: Ovocito Primario -->
+          <g transform="translate(95, 322)">
+            <circle cx="0" cy="0" r="28" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2.2" />
+            <circle cx="-4" cy="-3" r="11" fill="url(#nucleus-grad)" />
+            <circle cx="-6" cy="-5" r="3" fill="#ffe4e6" opacity="0.8" />
+          </g>
+          <text x="155" y="318" class="label-title">Ovocito primario</text>
+          <text x="155" y="335" class="label-sub">De primer orden (Meiosis I)</text>
+          <rect x="285" y="309" width="34" height="20" rx="10" fill="#ffe4e6" stroke="#fb7185" />
+          <text x="302" y="323" text-anchor="middle" fill="#be123c" class="badge-text">2n</text>
+
+          <line x1="95" y1="358" x2="95" y2="398" stroke="#e11d48" stroke-width="2.2" marker-end="url(#arrow-germ)" />
+
+          <!-- Stage 4: Ovocito Secundario + 1er Cuerpo Polar -->
+          <g transform="translate(95, 448)">
+            <circle cx="0" cy="0" r="28" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2.2" />
+            <!-- Meiotic spindle visual -->
+            <ellipse cx="10" cy="-10" rx="6" ry="3.5" transform="rotate(-35 10 -10)" fill="#9f1239" opacity="0.85" />
+            <!-- 1st Polar body -->
+            <circle cx="29" cy="-21" r="8" fill="#fda4af" stroke="#be123c" stroke-width="1.6" />
+            <circle cx="29" cy="-21" r="2.8" fill="#9f1239" />
+          </g>
+          <text x="155" y="443" class="label-title">Ovocito secundario</text>
+          <text x="155" y="460" class="label-sub">De segundo orden + 1.er c. polar</text>
+          <rect x="285" y="434" width="34" height="20" rx="10" fill="#ffe4e6" stroke="#fb7185" />
+          <text x="302" y="448" text-anchor="middle" fill="#be123c" class="badge-text">n</text>
+
+          <line x1="95" y1="484" x2="95" y2="524" stroke="#e11d48" stroke-width="2.2" marker-end="url(#arrow-germ)" />
+
+          <!-- Stage 5: Óvulo Definitivo -->
+          <g transform="translate(95, 574)">
+            <circle cx="0" cy="0" r="29" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2.5" />
+            <circle cx="0" cy="0" r="10" fill="url(#nucleus-grad)" />
+            <!-- 2 Polar bodies -->
+            <circle cx="28" cy="-22" r="7.5" fill="#fda4af" stroke="#be123c" stroke-width="1.5" />
+            <circle cx="33" cy="-8" r="7.5" fill="#fda4af" stroke="#be123c" stroke-width="1.5" />
+          </g>
+          <text x="155" y="569" class="label-title">Óvulo definitivo</text>
+          <text x="155" y="586" class="label-sub">Gameto maduro + 2.º c. polar</text>
+          <rect x="285" y="560" width="34" height="20" rx="10" fill="#ffe4e6" stroke="#fb7185" />
+          <text x="302" y="574" text-anchor="middle" fill="#be123c" class="badge-text">n</text>
+        </g>
+
+        <!-- ========================================================= -->
+        <!-- PANEL 2: INTEGRACIÓN EN EL OVARIO (CENTER)                -->
+        <!-- ========================================================= -->
+        <g>
+          <rect x="360" y="16" width="480" height="628" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+          <text x="600" y="48" text-anchor="middle" fill="#0f172a" class="panel-header">Ovario: Organización Espacial</text>
+          <text x="600" y="68" text-anchor="middle" class="label-sub">Las células somáticas envuelven y sostienen a cada célula germinal</text>
+
+          <!-- Ovary Silhouette & Stroma (Somatic) -->
+          <g class="som-group" filter="url(#soft-shadow)">
+            <!-- Main Ovary Body (Stroma) -->
+            <path d="M 465 215
+                     C 495 140, 615 115, 705 160
+                     C 790 205, 805 335, 755 435
+                     C 705 535, 565 555, 485 485
+                     C 445 450, 445 385, 470 350
+                     C 490 322, 490 285, 465 255
+                     C 455 242, 458 228, 465 215 Z"
+                  fill="url(#ovary-stroma)" stroke="#0d9488" stroke-width="5" />
+
+            <!-- Subtle Stromal Fibers / Medulla texture -->
+            <path d="M 495 310 Q 560 290 610 325 T 710 310" fill="none" stroke="#99f6e4" stroke-width="2" />
+            <path d="M 505 350 Q 575 370 630 340 T 720 365" fill="none" stroke="#99f6e4" stroke-width="2" />
+            <path d="M 520 270 Q 585 250 645 275" fill="none" stroke="#99f6e4" stroke-width="2" />
+
+            <!-- Hilus Blood Vessels (Medulla) -->
+            <path d="M 420 295 C 465 295, 505 280, 545 265" fill="none" stroke="#f87171" stroke-width="4" stroke-linecap="round" opacity="0.55" />
+            <path d="M 420 312 C 470 312, 515 330, 555 355" fill="none" stroke="#60a5fa" stroke-width="3.5" stroke-linecap="round" opacity="0.55" />
+          </g>
+
+          <!-- Follicle 1: Primordial (Top) -->
+          <g transform="translate(565, 190)">
+            <!-- Somatic flat follicular cells -->
+            <g class="som-group">
+              <circle cx="0" cy="0" r="19" fill="none" stroke="#0d9488" stroke-width="3.5" stroke-dasharray="12 3" />
+            </g>
+            <!-- Germ oocyte -->
+            <g class="germ-group">
+              <circle cx="0" cy="0" r="14" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="1.5" />
+              <circle cx="0" cy="0" r="5" fill="url(#nucleus-grad)" />
+            </g>
+          </g>
+
+          <!-- Follicle 2: Primario (Top Right) -->
+          <g transform="translate(675, 225)">
+            <!-- Somatic cuboidal granulosa layer -->
+            <g class="som-group">
+              <circle cx="0" cy="0" r="27" fill="#5eead4" stroke="#0f766e" stroke-width="2" />
+              <circle cx="0" cy="0" r="27" fill="none" stroke="#0f766e" stroke-width="4" stroke-dasharray="6 4" />
+            </g>
+            <!-- Germ oocyte -->
+            <g class="germ-group">
+              <circle cx="0" cy="0" r="16" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="1.5" />
+              <circle cx="0" cy="0" r="6" fill="url(#nucleus-grad)" />
+            </g>
+          </g>
+
+          <!-- Follicle 3: Secundario (Right) -->
+          <g transform="translate(715, 335)">
+            <!-- Somatic theca + multilayered granulosa -->
+            <g class="som-group">
+              <circle cx="0" cy="0" r="40" fill="#99f6e4" stroke="#115e59" stroke-width="2.5" />
+              <circle cx="0" cy="0" r="34" fill="#2dd4bf" stroke="#0d9488" stroke-width="1.5" />
+              <!-- Small follicular fluid spaces -->
+              <circle cx="-16" cy="-12" r="5" fill="#e0f2fe" />
+              <circle cx="-18" cy="8" r="4" fill="#e0f2fe" />
+            </g>
+            <!-- Germ oocyte -->
+            <g class="germ-group">
+              <circle cx="6" cy="0" r="17" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="1.5" />
+              <circle cx="6" cy="0" r="6" fill="url(#nucleus-grad)" />
+            </g>
+          </g>
+
+          <!-- Follicle 4: Maduro / de Graaf (Bottom) -->
+          <g transform="translate(610, 445)">
+            <!-- Somatic layers -->
+            <g class="som-group">
+              <circle cx="0" cy="0" r="56" fill="#99f6e4" stroke="#115e59" stroke-width="3" />
+              <circle cx="0" cy="0" r="48" fill="#14b8a6" />
+              <!-- Large Antrum -->
+              <path d="M -32 -12 A 34 34 0 1 1 15 30 A 24 24 0 0 0 -12 -18 Z" fill="url(#antrum-grad)" />
+              <!-- Cumulus oophorus / Corona radiata -->
+              <circle cx="-14" cy="12" r="22" fill="#2dd4bf" />
+            </g>
+            <!-- Germ oocyte -->
+            <g class="germ-group">
+              <circle cx="-14" cy="12" r="15" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="1.8" />
+              <circle cx="-14" cy="12" r="5.5" fill="url(#nucleus-grad)" />
+            </g>
+          </g>
+
+          <!-- Clean Callouts on Center Ovary -->
+          <!-- Epitelio superficial -->
+          <g class="som-group">
+            <polyline points="505,152 465,112 440,112" class="pointer-line" />
+            <circle cx="505" cy="152" r="3.5" fill="#0f766e" />
+            <text x="380" y="108" class="label-title">Epitelio</text>
+            <text x="380" y="124" class="label-title">superficial</text>
+
+            <!-- Estroma ovárico -->
+            <polyline points="545,380 450,535 425,535" class="pointer-line" />
+            <circle cx="545" cy="380" r="3.5" fill="#0f766e" />
+            <text x="380" y="555" class="label-title">Estroma ovárico</text>
+            <text x="380" y="571" class="label-sub">Tejido de sostén</text>
+          </g>
+
+          <!-- Folículos ováricos -->
+          <polyline points="665,465 735,535 760,535" class="pointer-line" />
+          <circle cx="665" cy="465" r="3.5" fill="#0f172a" />
+          <text x="715" y="555" class="label-title">Folículos ováricos</text>
+          <text x="715" y="571" class="label-sub">Desarrollo progresivo</text>
+        </g>
+
+        <!-- ========================================================= -->
+        <!-- PANEL 3: COMPONENTE SOMÁTICO - ZOOM FOLÍCULO (RIGHT)      -->
+        <!-- ========================================================= -->
+        <g class="som-group">
+          <rect x="860" y="16" width="320" height="628" rx="18" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5" />
+          <rect x="860" y="16" width="320" height="48" rx="18" fill="#0d9488" />
+          <rect x="860" y="44" width="320" height="20" fill="#0d9488" />
+          <text x="1020" y="46" text-anchor="middle" fill="#ffffff" class="panel-header">2. Componente Somático</text>
+
+          <text x="1020" y="92" text-anchor="middle" class="label-title">Capas del Folículo Ovárico</text>
+          <text x="1020" y="109" text-anchor="middle" class="label-sub">Envoltura somática del gameto</text>
+
+          <!-- Zoomed Mature Follicle Diagram -->
+          <g transform="translate(1020, 245)">
+            <!-- Teca Externa -->
+            <circle cx="0" cy="0" r="108" fill="#ccfbf1" stroke="#115e59" stroke-width="3" />
+            <!-- Teca Interna -->
+            <circle cx="0" cy="0" r="94" fill="#5eead4" stroke="#0f766e" stroke-width="2" />
+            <!-- Membrana Basal -->
+            <circle cx="0" cy="0" r="81" fill="#14b8a6" stroke="#ffffff" stroke-width="2" />
+
+            <!-- Decorative Granulosa Cells Ring -->
+            <g fill="#2dd4bf" stroke="#0f766e" stroke-width="1.2">
+              <circle cx="0" cy="-71" r="7" /><circle cx="28" cy="-65" r="7" /><circle cx="52" cy="-48" r="7" />
+              <circle cx="67" cy="-24" r="7" /><circle cx="71" cy="4" r="7" /><circle cx="64" cy="32" r="7" />
+              <circle cx="47" cy="54" r="7" /><circle cx="22" cy="68" r="7" /><circle cx="-8" cy="70" r="7" />
+              <circle cx="-36" cy="61" r="7" /><circle cx="-57" cy="42" r="7" /><circle cx="-69" cy="16" r="7" />
+              <circle cx="-70" cy="-14" r="7" /><circle cx="-58" cy="-41" r="7" /><circle cx="-34" cy="-62" r="7" />
+            </g>
+
+            <!-- Antrum (Fluid cavity on upper-left) -->
+            <path d="M -56 -18 A 58 58 0 0 1 28 -48 A 42 42 0 0 0 -22 24 A 58 58 0 0 1 -56 -18 Z" fill="url(#antrum-grad)" />
+
+            <!-- Cumulus Oophorus / Corona Radiata (Somatic) -->
+            <circle cx="14" cy="14" r="38" fill="#2dd4bf" stroke="#0f766e" stroke-width="1.5" />
+
+            <!-- Zona Pellucida -->
+            <circle cx="14" cy="14" r="26" fill="#ffffff" opacity="0.85" />
+
+            <!-- Central Germ Oocyte (Highlighted in Pink even inside Somático panel) -->
+            <g class="germ-group">
+              <circle cx="14" cy="14" r="21" fill="url(#oocyte-grad)" stroke="#be123c" stroke-width="2" />
+              <circle cx="14" cy="14" r="8" fill="url(#nucleus-grad)" />
+            </g>
+          </g>
+
+          <!-- Structured Visual Legend / Anatomy Key -->
+          <g transform="translate(882, 382)">
+            <!-- Item 1: Células de la granulosa -->
+            <rect x="0" y="0" width="276" height="52" rx="12" fill="#ffffff" stroke="#99f6e4" />
+            <circle cx="24" cy="26" r="11" fill="#14b8a6" stroke="#0f766e" stroke-width="1.5" />
+            <text x="46" y="23" class="label-title">Células foliculares / Granulosa</text>
+            <text x="46" y="39" class="label-sub">Capa interna que rodea al ovocito</text>
+
+            <!-- Item 2: Células tecales -->
+            <rect x="0" y="62" width="276" height="52" rx="12" fill="#ffffff" stroke="#99f6e4" />
+            <circle cx="24" cy="88" r="11" fill="#5eead4" stroke="#115e59" stroke-width="2.5" />
+            <text x="46" y="85" class="label-title">Células tecales</text>
+            <text x="46" y="101" class="label-sub">Teca interna y teca externa</text>
+
+            <!-- Item 3: Epitelio y Estroma -->
+            <rect x="0" y="124" width="276" height="52" rx="12" fill="#ffffff" stroke="#99f6e4" />
+            <rect x="13" y="139" width="22" height="22" rx="6" fill="#ccfbf1" stroke="#0d9488" stroke-width="2" />
+            <text x="46" y="147" class="label-title">Epitelio y estroma ovárico</text>
+            <text x="46" y="163" class="label-sub">Cubierta externa y matriz de la gónada</text>
+
+            <!-- Reference badge for the central germ cell -->
+            <rect x="0" y="188" width="276" height="38" rx="10" fill="#fff1f2" stroke="#fecdd3" />
+            <circle cx="24" cy="207" r="8" fill="#fb7185" stroke="#be123c" stroke-width="1.5" />
+            <text x="44" y="211" class="label-sub" style="fill:#9f1239; font-weight:600;">Centro rosa = Ovocito (Estirpe germinal)</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    function setFilter(mode, btn) {
+      document.body.classList.remove('filter-germ', 'filter-som');
+      if (mode === 'germ') document.body.classList.add('filter-germ');
+      if (mode === 'som') document.body.classList.add('filter-som');
+
+      document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>
