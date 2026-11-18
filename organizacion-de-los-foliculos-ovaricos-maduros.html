@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organización de los Folículos Ováricos Maduros</title>
+  <!-- Carga de Tailwind CSS y fuente Inter -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* Transiciones suaves para las capas anatómicas del SVG */
+    .anat-layer {
+      cursor: pointer;
+      transition: opacity 0.25s ease, filter 0.25s ease;
+    }
+
+    .anat-label {
+      cursor: pointer;
+      transition: opacity 0.25s ease, transform 0.2s ease;
+    }
+
+    .anat-label:hover text {
+      font-weight: 800;
+    }
+
+    /* Estados de filtrado por componente (Germinal vs Somático) */
+    svg.mode-germinal .som-part {
+      opacity: 0.18;
+    }
+
+    svg.mode-somatico .germ-part {
+      opacity: 0.18;
+    }
+
+    /* Resaltado activo de una estructura seleccionada o señalada */
+    svg.has-highlight .anat-layer:not(.is-highlighted) {
+      opacity: 0.32;
+    }
+
+    svg.has-highlight .anat-label:not(.is-highlighted) {
+      opacity: 0.35;
+    }
+
+    .anat-layer.is-highlighted {
+      filter: drop-shadow(0 0 6px rgba(15, 23, 42, 0.28));
+    }
+
+    /* Modo autoevaluación: oculta los textos de las etiquetas dejando solo los puntos guía */
+    svg.quiz-mode .label-text-group {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    svg.quiz-mode .anat-label.is-revealed .label-text-group {
+      opacity: 1;
+    }
+
+    .pointer-line {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-3 sm:p-6 flex flex-col items-center">
+
+  <!-- Contenedor principal -->
+  <main class="w-full max-w-6xl bg-white rounded-3xl shadow-lg border border-slate-200/80 overflow-hidden">
+
+    <!-- Cabecera y progresión de la línea germinal (fiel a la diapositiva) -->
+    <header class="p-5 sm:p-7 border-b border-slate-200 bg-gradient-to-br from-white via-slate-50/70 to-emerald-50/30">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200 mb-2">
+            Embriología · Ovogénesis y Foliculogénesis
+          </span>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Organización de los <span class="text-blue-800">folículos ováricos maduros</span>
+          </h1>
+        </div>
+
+        <!-- Barra de herramientas interactivas -->
+        <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Controles de visualización">
+          <button type="button" data-view="all" onclick="setViewMode('all', this)"
+            class="view-btn active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 text-white shadow-sm transition">
+            Vista completa
+          </button>
+          <button type="button" data-view="germinal" onclick="setViewMode('germinal', this)"
+            class="view-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            Germinal
+          </button>
+          <button type="button" data-view="somatico" onclick="setViewMode('somatico', this)"
+            class="view-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-800"></span>
+            Somático (1–4)
+          </button>
+          <button type="button" id="quiz-toggle" onclick="toggleQuizMode()"
+            class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span id="quiz-btn-text">Modo repaso</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Línea superior de la diapositiva: Progresión Germinal -->
+      <div class="mt-5 p-3.5 sm:p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-sm sm:text-base">
+          <span class="font-extrabold text-emerald-800 flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            Germinal:
+          </span>
+
+          <button type="button" onclick="selectGermStage('cgp', this)"
+            class="germ-pill px-3 py-1 rounded-xl font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs">
+            CGPs
+          </button>
+          <span class="text-emerald-600 font-bold" aria-hidden="true">→</span>
+
+          <button type="button" onclick="selectGermStage('ovogonia', this)"
+            class="germ-pill px-3 py-1 rounded-xl font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs">
+            Ovogonias
+          </button>
+          <span class="text-emerald-600 font-bold" aria-hidden="true">→</span>
+
+          <button type="button" onclick="selectGermStage('ovocito1', this)"
+            class="germ-pill px-3 py-1 rounded-xl font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs">
+            Ovocitos primarios
+          </button>
+          <span class="text-emerald-600 font-bold" aria-hidden="true">→</span>
+
+          <button type="button" onclick="selectGermStage('ovocito2', this)"
+            class="germ-pill px-3 py-1 rounded-xl font-bold text-white bg-emerald-600 border border-emerald-700 shadow-sm transition">
+            Ovocitos secundarios
+          </button>
+        </div>
+        <!-- Breve nota contextual al pulsar una etapa germinal -->
+        <p id="germ-stage-note" class="mt-2.5 text-xs sm:text-sm text-emerald-900/90 font-medium">
+          <strong>Ovocito secundario (n):</strong> En el folículo maduro (de Graaf), el ovocito completa la Meiosis I justo antes de la ovulación y queda detenido en Metafase II.
+        </p>
+      </div>
+    </header>
+
+    <!-- Cuerpo principal: Ilustración SVG interactiva + Panel de detalle -->
+    <div class="grid grid-cols-1 lg:grid-cols-12">
+
+      <!-- Columna izquierda (8 cols): Ilustración histológica esquemática -->
+      <div class="lg:col-span-8 p-4 sm:p-6 bg-white flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-200">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Somático &amp; Organización Folicular</h2>
+          </div>
+          <span class="text-xs text-slate-500 hidden sm:inline">Pasa el cursor o toca cualquier capa</span>
+        </div>
+
+        <!-- SVG Anatómico fiel a Climent S (Fig. 3.9) -->
+        <div class="w-full relative select-none">
+          <svg id="follicle-svg" viewBox="0 0 820 560" class="w-full h-auto rounded-2xl" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Gradiente suave para el líquido del antro folicular -->
+              <radialGradient id="antrumGrad" cx="45%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="70%" stop-color="#f0f9ff" />
+                <stop offset="100%" stop-color="#e0f2fe" />
+              </radialGradient>
+
+              <!-- Gradiente para el ovocito maduro (Germinal - Verde) -->
+              <radialGradient id="oocyteGrad" cx="38%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#d1fae5" />
+                <stop offset="65%" stop-color="#6ee7b7" />
+                <stop offset="100%" stop-color="#10b981" />
+              </radialGradient>
+
+              <!-- Patrón de fibras del estroma ovárico -->
+              <pattern id="stromaPattern" width="90" height="70" patternUnits="userSpaceOnUse">
+                <path d="M 10 20 Q 30 14 50 22" stroke="#cbd5e1" stroke-width="1.3" fill="none" />
+                <path d="M 45 50 Q 65 44 85 52" stroke="#cbd5e1" stroke-width="1.3" fill="none" />
+                <!-- Célula estromal fusiforme -->
+                <path d="M 22 48 L 32 43 L 42 48 L 32 53 Z" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.2" />
+                <circle cx="32" cy="48" r="1.8" fill="#64748b" />
+                <path d="M 62 18 L 70 14 L 78 18 L 70 22 Z" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.2" />
+                <circle cx="70" cy="18" r="1.6" fill="#64748b" />
+              </pattern>
+            </defs>
+
+            <!-- Fondo limpio -->
+            <rect x="0" y="0" width="820" height="560" rx="20" fill="#ffffff" />
+
+            <!-- ============================================================ -->
+            <!-- 1. ESTROMA OVÁRICO (Tejido conjuntivo basal y lateral)       -->
+            <!-- ============================================================ -->
+            <g id="layer-estroma" class="anat-layer som-part" data-key="estroma"
+               onmouseenter="highlightPart('estroma')" onmouseleave="clearHighlight()" onclick="lockPart('estroma')">
+              <path d="M 95 352
+                       Q 175 335 225 275
+                       C 250 140, 325 75, 420 75
+                       C 515 75, 590 140, 615 275
+                       Q 665 335 745 352
+                       L 745 515 L 95 515 Z"
+                    fill="url(#stromaPattern)" />
+              <!-- Células estromales destacadas en la base -->
+              <g fill="#f8fafc" stroke="#64748b" stroke-width="1.4">
+                <path d="M 155 415 L 168 400 L 178 418 L 164 432 Z" />
+                <circle cx="166" cy="416" r="2.5" fill="#475569" />
+                <path d="M 205 465 L 222 454 L 230 472 L 212 480 Z" />
+                <circle cx="218" cy="467" r="2.5" fill="#475569" />
+                <path d="M 295 495 L 315 488 L 320 503 L 300 508 Z" />
+                <circle cx="308" cy="498" r="2.5" fill="#475569" />
+                <path d="M 555 492 L 575 485 L 580 500 L 560 505 Z" />
+                <circle cx="568" cy="495" r="2.5" fill="#475569" />
+                <path d="M 650 430 L 664 415 L 674 432 L 660 446 Z" />
+                <circle cx="662" cy="431" r="2.5" fill="#475569" />
+                <path d="M 695 385 L 712 378 L 718 394 L 700 400 Z" />
+                <circle cx="707" cy="389" r="2.5" fill="#475569" />
+              </g>
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 2. TECA EXTERNA (1) - Cápsula fibrosa externa                -->
+            <!-- ============================================================ -->
+            <g id="layer-teca_externa" class="anat-layer som-part" data-key="teca_externa"
+               onmouseenter="highlightPart('teca_externa')" onmouseleave="clearHighlight()" onclick="lockPart('teca_externa')">
+              <ellipse cx="420" cy="285" rx="186" ry="200" fill="#fed7aa" stroke="#7c2d12" stroke-width="2.5" />
+              <!-- Fibras concéntricas de la teca externa -->
+              <ellipse cx="420" cy="285" rx="180" ry="194" fill="none" stroke="#9a3412" stroke-width="1.2" stroke-dasharray="18 8 10 6" />
+              <ellipse cx="420" cy="285" rx="174" ry="188" fill="none" stroke="#9a3412" stroke-width="1" stroke-dasharray="12 10" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 3. TECA INTERNA (2) - Capa celular y vascularizada           -->
+            <!-- ============================================================ -->
+            <g id="layer-teca_interna" class="anat-layer som-part" data-key="teca_interna"
+               onmouseenter="highlightPart('teca_interna')" onmouseleave="clearHighlight()" onclick="lockPart('teca_interna')">
+              <ellipse cx="420" cy="285" rx="168" ry="182" fill="#fde68a" stroke="#b45309" stroke-width="1.8" />
+              <!-- Punteado celular y capilares de la teca interna -->
+              <ellipse cx="420" cy="285" rx="160" ry="174" fill="none" stroke="#92400e" stroke-width="4" stroke-dasharray="3 7" />
+              <ellipse cx="420" cy="285" rx="154" ry="168" fill="none" stroke="#b45309" stroke-width="3" stroke-dasharray="2 8" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 4. MEMBRANA BASAL (3) - Lámina que separa teca y granulosa   -->
+            <!-- ============================================================ -->
+            <g id="layer-membrana_basal" class="anat-layer som-part" data-key="membrana_basal"
+               onmouseenter="highlightPart('membrana_basal')" onmouseleave="clearHighlight()" onclick="lockPart('membrana_basal')">
+              <ellipse cx="420" cy="285" rx="148" ry="162" fill="#fef3c7" stroke="#78350f" stroke-width="3.5" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 5. CAPA GRANULOSA (4) - Pared folicular estratificada        -->
+            <!-- ============================================================ -->
+            <g id="layer-capa_granulosa" class="anat-layer som-part" data-key="capa_granulosa"
+               onmouseenter="highlightPart('capa_granulosa')" onmouseleave="clearHighlight()" onclick="lockPart('capa_granulosa')">
+              <ellipse cx="420" cy="285" rx="145" ry="159" fill="#f59e0b" fill-opacity="0.28" />
+              <!-- Anillos celulares granulosa -->
+              <ellipse cx="420" cy="285" rx="139" ry="153" fill="none" stroke="#92400e" stroke-width="6" stroke-dasharray="4 4" />
+              <ellipse cx="420" cy="285" rx="131" ry="145" fill="none" stroke="#b45309" stroke-width="5.5" stroke-dasharray="3.5 4.5" />
+              <ellipse cx="420" cy="285" rx="124" ry="138" fill="none" stroke="#78350f" stroke-width="4.5" stroke-dasharray="3 5" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 6. ANTRO FOLICULAR - Cavidad central con líquido folicular   -->
+            <!-- ============================================================ -->
+            <g id="layer-antro" class="anat-layer som-part" data-key="antro"
+               onmouseenter="highlightPart('antro')" onmouseleave="clearHighlight()" onclick="lockPart('antro')">
+              <ellipse cx="420" cy="285" rx="120" ry="134" fill="url(#antrumGrad)" stroke="#92400e" stroke-width="1.5" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 7. CUMULUS OOPHORUS (4) - Pedículo/montículo de granulosa    -->
+            <!-- ============================================================ -->
+            <g id="layer-cumulus" class="anat-layer som-part" data-key="cumulus"
+               onmouseenter="highlightPart('cumulus')" onmouseleave="clearHighlight()" onclick="lockPart('cumulus')">
+              <!-- Montículo que une el ovocito a la pared granulosa inferior derecha -->
+              <path d="M 418 416
+                       C 412 385, 432 346, 466 346
+                       C 502 346, 524 378, 514 405
+                       C 492 418, 452 422, 418 416 Z"
+                    fill="#fcd34d" stroke="#92400e" stroke-width="2" />
+              <!-- Textura celular del cumulus -->
+              <g fill="#92400e" opacity="0.65">
+                <circle cx="430" cy="396" r="2.2" /><circle cx="438" cy="405" r="2.2" />
+                <circle cx="448" cy="410" r="2.2" /><circle cx="462" cy="412" r="2.2" />
+                <circle cx="476" cy="410" r="2.2" /><circle cx="490" cy="404" r="2.2" />
+                <circle cx="502" cy="395" r="2.2" /><circle cx="504" cy="382" r="2.2" />
+                <circle cx="428" cy="383" r="2.2" /><circle cx="436" cy="368" r="2.2" />
+              </g>
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 8. CORONA RADIADA (4) - Capa interna radial de granulosa     -->
+            <!-- ============================================================ -->
+            <g id="layer-corona_radiada" class="anat-layer som-part" data-key="corona_radiada"
+               onmouseenter="highlightPart('corona_radiada')" onmouseleave="clearHighlight()" onclick="lockPart('corona_radiada')">
+              <circle cx="468" cy="381" r="30" fill="#fbbf24" stroke="#78350f" stroke-width="2" />
+              <circle cx="468" cy="381" r="26" fill="none" stroke="#78350f" stroke-width="4.5" stroke-dasharray="3 3.5" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 9. ZONA PELÚCIDA - Cubierta glicoproteica acelular           -->
+            <!-- ============================================================ -->
+            <g id="layer-zona_pelucida" class="anat-layer germ-part" data-key="zona_pelucida"
+               onmouseenter="highlightPart('zona_pelucida')" onmouseleave="clearHighlight()" onclick="lockPart('zona_pelucida')">
+              <circle cx="468" cy="381" r="21" fill="#ecfdf5" stroke="#065f46" stroke-width="3" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 10. OVOCITO MADURO - Gameto femenino (Componente Germinal)   -->
+            <!-- ============================================================ -->
+            <g id="layer-ovocito" class="anat-layer germ-part" data-key="ovocito"
+               onmouseenter="highlightPart('ovocito')" onmouseleave="clearHighlight()" onclick="lockPart('ovocito')">
+              <circle cx="468" cy="381" r="16.5" fill="url(#oocyteGrad)" stroke="#047857" stroke-width="2" />
+              <!-- Núcleo / vesícula germinativa y nucléolo -->
+              <circle cx="466" cy="380" r="6" fill="#059669" fill-opacity="0.35" stroke="#065f46" stroke-width="1.2" />
+              <circle cx="465" cy="379" r="2.3" fill="#064e3b" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- 11. EPITELIO OVÁRICO - Cubierta superficial cúbica           -->
+            <!-- ============================================================ -->
+            <g id="layer-epitelio" class="anat-layer som-part" data-key="epitelio"
+               onmouseenter="highlightPart('epitelio')" onmouseleave="clearHighlight()" onclick="lockPart('epitelio')">
+              <!-- Banda continua del epitelio superficial cubriendo el abombamiento folicular -->
+              <path d="M 95 344
+                       Q 172 328 220 268
+                       C 245 130, 322 65, 420 65
+                       C 518 65, 595 130, 620 268
+                       Q 668 328 745 344
+                       L 745 356
+                       Q 662 340 612 276
+                       C 588 142, 514 77, 420 77
+                       C 326 77, 252 142, 228 276
+                       Q 178 340 95 356 Z"
+                    fill="#e2e8f0" stroke="#475569" stroke-width="2" />
+              <!-- Divisiones celulares cúbicas a lo largo del epitelio -->
+              <path d="M 95 350 Q 175 334 224 272 C 248 136, 324 71, 420 71 C 516 71, 592 136, 616 272 Q 665 334 745 350"
+                    fill="none" stroke="#475569" stroke-width="8" stroke-dasharray="2 12" />
+            </g>
+
+            <!-- ============================================================ -->
+            <!-- ETIQUETAS Y LÍNEAS SEÑALIZADORAS (Idénticas a Fig. 3.9)      -->
+            <!-- ============================================================ -->
+
+            <!-- Teca externa (1) -->
+            <g id="label-teca_externa" class="anat-label som-part" data-key="teca_externa"
+               onmouseenter="highlightPart('teca_externa')" onmouseleave="clearHighlight()" onclick="lockPart('teca_externa')">
+              <polyline points="232,126 286,184" class="pointer-line" stroke="#7c2d12" stroke-width="1.8" />
+              <circle cx="286" cy="184" r="3.5" fill="#7c2d12" />
+              <g class="label-text-group">
+                <text x="225" y="122" text-anchor="end" fill="#7c2d12" font-size="15" font-weight="700">Teca externa (1)</text>
+              </g>
+            </g>
+
+            <!-- Teca interna (2) -->
+            <g id="label-teca_interna" class="anat-label som-part" data-key="teca_interna"
+               onmouseenter="highlightPart('teca_interna')" onmouseleave="clearHighlight()" onclick="lockPart('teca_interna')">
+              <polyline points="196,178 275,216" class="pointer-line" stroke="#9a3412" stroke-width="1.8" />
+              <circle cx="275" cy="216" r="3.5" fill="#9a3412" />
+              <g class="label-text-group">
+                <text x="189" y="176" text-anchor="end" fill="#9a3412" font-size="15" font-weight="700">Teca interna (2)</text>
+              </g>
+            </g>
+
+            <!-- Membrana basal (3) -->
+            <g id="label-membrana_basal" class="anat-label som-part" data-key="membrana_basal"
+               onmouseenter="highlightPart('membrana_basal')" onmouseleave="clearHighlight()" onclick="lockPart('membrana_basal')">
+              <polyline points="184,234 277,250" class="pointer-line" stroke="#78350f" stroke-width="1.8" />
+              <circle cx="277" cy="250" r="3.5" fill="#78350f" />
+              <g class="label-text-group">
+                <text x="177" y="236" text-anchor="end" fill="#78350f" font-size="15" font-weight="700">Membrana basal (3)</text>
+              </g>
+            </g>
+
+            <!-- Epitelio ovárico -->
+            <g id="label-epitelio" class="anat-label som-part" data-key="epitelio"
+               onmouseenter="highlightPart('epitelio')" onmouseleave="clearHighlight()" onclick="lockPart('epitelio')">
+              <polyline points="575,112 536,128" class="pointer-line" stroke="#475569" stroke-width="1.8" />
+              <circle cx="536" cy="128" r="3.5" fill="#475569" />
+              <g class="label-text-group">
+                <text x="582" y="114" text-anchor="start" fill="#475569" font-size="15" font-weight="700">Epitelio ovárico</text>
+              </g>
+            </g>
+
+            <!-- Capa granulosa (4) -->
+            <g id="label-capa_granulosa" class="anat-label som-part" data-key="capa_granulosa"
+               onmouseenter="highlightPart('capa_granulosa')" onmouseleave="clearHighlight()" onclick="lockPart('capa_granulosa')">
+              <polyline points="420,174 420,136" class="pointer-line" stroke="#92400e" stroke-width="1.8" />
+              <circle cx="420" cy="136" r="3.5" fill="#92400e" />
+              <g class="label-text-group">
+                <text x="420" y="192" text-anchor="middle" fill="#92400e" font-size="15" font-weight="700">Capa granulosa (4)</text>
+              </g>
+            </g>
+
+            <!-- Antro folicular -->
+            <g id="label-antro" class="anat-label som-part" data-key="antro"
+               onmouseenter="highlightPart('antro')" onmouseleave="clearHighlight()" onclick="lockPart('antro')">
+              <g class="label-text-group">
+                <text x="420" y="272" text-anchor="middle" fill="#0f172a" font-size="16" font-weight="700">Antro folicular</text>
+              </g>
+            </g>
+
+            <!-- Cumulus oophorus (4) -->
+            <g id="label-cumulus" class="anat-label som-part" data-key="cumulus"
+               onmouseenter="highlightPart('cumulus')" onmouseleave="clearHighlight()" onclick="lockPart('cumulus')">
+              <polyline points="494,335 494,362" class="pointer-line" stroke="#92400e" stroke-width="1.8" />
+              <circle cx="494" cy="362" r="3.5" fill="#92400e" />
+              <g class="label-text-group">
+                <text x="494" y="314" text-anchor="middle" fill="#92400e" font-size="14.5" font-weight="700">Cumulus</text>
+                <text x="494" y="329" text-anchor="middle" fill="#92400e" font-size="14.5" font-weight="700">oophorus (4)</text>
+              </g>
+            </g>
+
+            <!-- Corona radiada (4) -->
+            <g id="label-corona_radiada" class="anat-label som-part" data-key="corona_radiada"
+               onmouseenter="highlightPart('corona_radiada')" onmouseleave="clearHighlight()" onclick="lockPart('corona_radiada')">
+              <polyline points="415,342 444,366" class="pointer-line" stroke="#92400e" stroke-width="1.8" />
+              <circle cx="444" cy="366" r="3.5" fill="#92400e" />
+              <g class="label-text-group">
+                <text x="410" y="324" text-anchor="end" fill="#92400e" font-size="14.5" font-weight="700">Corona</text>
+                <text x="410" y="339" text-anchor="end" fill="#92400e" font-size="14.5" font-weight="700">radiada (4)</text>
+              </g>
+            </g>
+
+            <!-- Ovocito maduro (Germinal) -->
+            <g id="label-ovocito" class="anat-label germ-part" data-key="ovocito"
+               onmouseenter="highlightPart('ovocito')" onmouseleave="clearHighlight()" onclick="lockPart('ovocito')">
+              <polyline points="622,400 475,382" class="pointer-line" stroke="#047857" stroke-width="2" />
+              <circle cx="475" cy="382" r="3.8" fill="#047857" />
+              <g class="label-text-group">
+                <text x="630" y="405" text-anchor="start" fill="#047857" font-size="15.5" font-weight="800">Ovocito maduro</text>
+              </g>
+            </g>
+
+            <!-- Zona pelúcida -->
+            <g id="label-zona_pelucida" class="anat-label germ-part" data-key="zona_pelucida"
+               onmouseenter="highlightPart('zona_pelucida')" onmouseleave="clearHighlight()" onclick="lockPart('zona_pelucida')">
+              <polyline points="622,448 485,392" class="pointer-line" stroke="#065f46" stroke-width="1.8" />
+              <circle cx="485" cy="392" r="3.5" fill="#065f46" />
+              <g class="label-text-group">
+                <text x="630" y="453" text-anchor="start" fill="#065f46" font-size="15" font-weight="700">Zona pelúcida</text>
+              </g>
+            </g>
+
+            <!-- Pie de referencia original -->
+            <text x="802" y="546" text-anchor="end" fill="#64748b" font-size="12" font-weight="500">
+              Modificado de Climent S (Fig. 3.9)
+            </text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Columna derecha (4 cols): Ficha de estudio interactiva e índice rápido -->
+      <aside class="lg:col-span-4 p-5 sm:p-6 bg-slate-50/70 flex flex-col justify-between gap-5">
+        <div>
+          <!-- Tarjeta de detalle de la estructura seleccionada -->
+          <div id="info-card" class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm transition-all">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span id="card-badge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800">
+                Componente Germinal
+              </span>
+              <span id="card-number" class="text-xs font-extrabold text-slate-400">
+                Gameto
+              </span>
+            </div>
+
+            <h3 id="card-title" class="text-lg font-extrabold text-slate-900">
+              Ovocito maduro
+            </h3>
+            <p id="card-subtitle" class="text-xs font-semibold text-emerald-700 mt-0.5 mb-3">
+              Estirpe germinal · En estadio de ovocito secundario
+            </p>
+            <p id="card-desc" class="text-sm text-slate-600 leading-relaxed">
+              Célula germinal femenina de gran tamaño y rica en reservas nutritivas (vitelo). Se sitúa excéntricamente rodeada por el <em>cumulus oophorus</em> lista para ser liberada en la ovulación.
+            </p>
+          </div>
+
+          <!-- Nota clave sobre el número (4) de la diapositiva -->
+          <div class="mt-4 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-xs text-amber-950 leading-relaxed">
+            <strong class="font-bold">Clave de examen — ¿Por qué se repite el (4)?</strong><br />
+            La <em>capa granulosa</em>, el <em>cumulus oophorus</em> y la <em>corona radiada</em> llevan todas el número <strong>(4)</strong> porque son regiones especializadas de las mismas <strong>células foliculares</strong>.
+          </div>
+
+          <!-- Lista rápida interactiva de todas las estructuras -->
+          <div class="mt-4">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Explorar estructuras
+            </p>
+            <div id="quick-list" class="flex flex-wrap gap-1.5">
+              <!-- Se rellena dinámicamente con JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Leyenda inferior -->
+        <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Germinal
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-700"></span> Somático (1–4)
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span> Epitelio / Estroma
+          </span>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // Base de datos concisa y fiel a los apuntes de embriología (Climent S / Tema 03)
+    const ANATOMY_DATA = {
+      ovocito: {
+        title: "Ovocito maduro",
+        subtitle: "Componente Germinal · Gameto femenino",
+        badge: "Germinal",
+        badgeClass: "bg-emerald-100 text-emerald-800",
+        number: "Gameto",
+        desc: "Célula germinal femenina de gran tamaño cargada de sustancias de reserva. En el folículo maduro (de Graaf) completa la Meiosis I antes de ovular y queda detenida en Metafase II."
+      },
+      zona_pelucida: {
+        title: "Zona pelúcida",
+        subtitle: "Cubierta glicoproteica acelular",
+        badge: "Interfase",
+        badgeClass: "bg-teal-100 text-teal-800",
+        number: "Envoltura",
+        desc: "Matriz extracelular rica en glicoproteínas que rodea directamente al ovocito. Media el reconocimiento específico con el espermatozoide e impide la polispermia."
+      },
+      teca_externa: {
+        title: "Teca externa (1)",
+        subtitle: "Componente Somático · Capa periférica",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Capa (1)",
+        desc: "Envoltura fibrosa externa derivada del estroma ovárico, rica en fibras de colágeno y células similares a fibroblastos que aportan soporte mecánico al folículo."
+      },
+      teca_interna: {
+        title: "Teca interna (2)",
+        subtitle: "Componente Somático · Capa vascular y endocrina",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Capa (2)",
+        desc: "Capa interna muy vascularizada con células poliédricas esteroidogénicas. Responde a la LH sintetizando andrógenos (precursores de estrógenos) y progesterona."
+      },
+      membrana_basal: {
+        title: "Membrana basal (3)",
+        subtitle: "Componente Somático · Límite histológico",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Capa (3)",
+        desc: "Lámina basal continua que separa la teca interna (vascularizada) de la capa granulosa (avascular hasta la ovulación)."
+      },
+      capa_granulosa: {
+        title: "Capa granulosa (4)",
+        subtitle: "Componente Somático · Células foliculares murales",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Tipo (4)",
+        desc: "Epitelio estratificado de células foliculares que tapiza la pared interna del folículo. Responde a la FSH produciendo estrógenos y líquido folicular."
+      },
+      cumulus: {
+        title: "Cumulus oophorus (4)",
+        subtitle: "Componente Somático · Cúmulo ovígero",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Tipo (4)",
+        desc: "Engrosamiento de células de la granulosa que proyecta hacia el antro y mantiene anclado al ovocito a la pared folicular hasta el momento de la ovulación."
+      },
+      corona_radiada: {
+        title: "Corona radiada (4)",
+        subtitle: "Componente Somático · Células foliculares periovocitarias",
+        badge: "Somático",
+        badgeClass: "bg-amber-100 text-amber-900",
+        number: "Tipo (4)",
+        desc: "Capa más interna de células del cumulus oophorus dispuesta radialmente alrededor de la zona pelúcida. Acompaña al ovocito cuando es expulsado en la ovulación."
+      },
+      antro: {
+        title: "Antro folicular",
+        subtitle: "Cavidad llena de líquido folicular",
+        badge: "Cavidad",
+        badgeClass: "bg-sky-100 text-sky-800",
+        number: "Antro",
+        desc: "Gran cavidad única formada por la confluencia de espacios rellenos de líquido folicular (liquor folliculi) secretado por las células de la granulosa y trasudado plasmático."
+      },
+      epitelio: {
+        title: "Epitelio ovárico",
+        subtitle: "Componente Somático · Epitelio superficial",
+        badge: "Somático",
+        badgeClass: "bg-slate-200 text-slate-800",
+        number: "Superficie",
+        desc: "Capa simple de células cúbicas/aplanadas que recubre la superficie externa del ovario y se abomba sobre el folículo maduro antes de romperse en el estigma ovulatorio."
+      },
+      estroma: {
+        title: "Estroma ovárico",
+        subtitle: "Componente Somático · Tejido de sostén",
+        badge: "Somático",
+        badgeClass: "bg-slate-200 text-slate-800",
+        number: "Matriz",
+        desc: "Tejido conjuntivo celular y vascularizado de la corteza ovárica que rodea a los folículos y da origen a las capas tecales durante la foliculogénesis."
+      }
+    };
+
+    const GERM_STAGES = {
+      cgp: "<strong>CGPs (2n):</strong> Células Germinales Primordiales extraembrionarias que migran hacia las crestas gonadales para colonizar el esbozo del ovario.",
+      ovogonia: "<strong>Ovogonias (2n):</strong> Se multiplican activamente por mitosis durante la etapa prenatal formando la reserva finita de células germinales.",
+      ovocito1: "<strong>Ovocitos primarios (2n):</strong> Inician la Meiosis I en el periodo fetal y quedan detenidos en profase I (diploteno) hasta la pubertad.",
+      ovocito2: "<strong>Ovocitos secundarios (n):</strong> En el folículo maduro (de Graaf), el ovocito completa la Meiosis I justo antes de la ovulación y queda detenido en Metafase II."
+    };
+
+    let lockedKey = 'ovocito';
+    let quizMode = false;
+
+    const svgEl = document.getElementById('follicle-svg');
+
+    // Inicializa los botones rápidos en el panel derecho
+    function initQuickList() {
+      const container = document.getElementById('quick-list');
+      const order = [
+        'teca_externa', 'teca_interna', 'membrana_basal',
+        'capa_granulosa', 'cumulus', 'corona_radiada',
+        'antro', 'epitelio', 'zona_pelucida', 'ovocito'
+      ];
+
+      order.forEach(key => {
+        const item = ANATOMY_DATA[key];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.key = key;
+        btn.textContent = item.title;
+        btn.className = 'quick-pill px-2.5 py-1 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:border-slate-400 transition';
+        btn.onclick = () => lockPart(key);
+        container.appendChild(btn);
+      });
+    }
+
+    // Actualiza la tarjeta de información
+    function renderCard(key) {
+      const data = ANATOMY_DATA[key];
+      if (!data) return;
+
+      const badge = document.getElementById('card-badge');
+      badge.textContent = data.badge;
+      badge.className = `px-2.5 py-1 rounded-lg text-xs font-bold ${data.badgeClass}`;
+
+      document.getElementById('card-number').textContent = data.number;
+      document.getElementById('card-title').textContent = data.title;
+      document.getElementById('card-subtitle').textContent = data.subtitle;
+      document.getElementById('card-desc').textContent = data.desc;
+
+      // Actualiza estado activo de las píldoras rápidas
+      document.querySelectorAll('.quick-pill').forEach(pill => {
+        if (pill.dataset.key === key) {
+          pill.classList.add('bg-slate-900', 'text-white', 'border-slate-900');
+          pill.classList.remove('bg-white', 'text-slate-700');
+        } else {
+          pill.classList.remove('bg-slate-900', 'text-white', 'border-slate-900');
+          pill.classList.add('bg-white', 'text-slate-700');
+        }
+      });
+    }
+
+    // Resaltado temporal al pasar el ratón
+    function highlightPart(key) {
+      applyHighlightClasses(key);
+      renderCard(key);
+    }
+
+    // Vuelve a la pieza fijada al salir el ratón
+    function clearHighlight() {
+      applyHighlightClasses(lockedKey);
+      renderCard(lockedKey);
+    }
+
+    // Fija la selección al hacer clic o tocar
+    function lockPart(key) {
+      lockedKey = key;
+      applyHighlightClasses(key);
+      renderCard(key);
+
+      // En modo repaso, revela la etiqueta pulsada
+      if (quizMode) {
+        const lbl = document.getElementById(`label-${key}`);
+        if (lbl) lbl.classList.add('is-revealed');
+      }
+    }
+
+    function applyHighlightClasses(activeKey) {
+      document.querySelectorAll('.anat-layer, .anat-label').forEach(el => {
+        el.classList.remove('is-highlighted');
+      });
+
+      if (!activeKey) {
+        svgEl.classList.remove('has-highlight');
+        return;
+      }
+
+      svgEl.classList.add('has-highlight');
+      const layer = document.getElementById(`layer-${activeKey}`);
+      const label = document.getElementById(`label-${activeKey}`);
+      if (layer) layer.classList.add('is-highlighted');
+      if (label) label.classList.add('is-highlighted');
+    }
+
+    // Cambia el filtro entre Todo, Germinal y Somático
+    function setViewMode(mode, btn) {
+      svgEl.classList.remove('mode-germinal', 'mode-somatico');
+      if (mode === 'germinal') {
+        svgEl.classList.add('mode-germinal');
+        lockPart('ovocito');
+      } else if (mode === 'somatico') {
+        svgEl.classList.add('mode-somatico');
+        lockPart('capa_granulosa');
+      } else {
+        lockPart('ovocito');
+      }
+
+      // Estilos de botones de filtro
+      document.querySelectorAll('.view-btn').forEach(b => {
+        b.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
+        if (b.dataset.view === 'all') {
+          b.classList.add('bg-slate-100', 'text-slate-700');
+        }
+      });
+
+      btn.classList.remove('bg-slate-100', 'text-slate-700');
+      btn.classList.add('bg-slate-900', 'text-white', 'shadow-sm');
+    }
+
+    // Activa o desactiva el modo autoevaluación (oculta nombres en el dibujo)
+    function toggleQuizMode() {
+      quizMode = !quizMode;
+      const btn = document.getElementById('quiz-toggle');
+      const btnText = document.getElementById('quiz-btn-text');
+
+      if (quizMode) {
+        svgEl.classList.add('quiz-mode');
+        document.querySelectorAll('.anat-label').forEach(l => l.classList.remove('is-revealed'));
+        btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-700');
+        btn.classList.remove('bg-slate-100', 'text-slate-700');
+        btnText.textContent = 'Mostrar etiquetas';
+      } else {
+        svgEl.classList.remove('quiz-mode');
+        btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-700');
+        btn.classList.add('bg-slate-100', 'text-slate-700');
+        btnText.textContent = 'Modo repaso';
+      }
+    }
+
+    // Selección en la barra superior de la línea germinal
+    function selectGermStage(stageKey, btn) {
+      document.getElementById('germ-stage-note').innerHTML = GERM_STAGES[stageKey];
+
+      document.querySelectorAll('.germ-pill').forEach(pill => {
+        pill.className = 'germ-pill px-3 py-1 rounded-xl font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-600 hover:text-white transition shadow-2xs';
+      });
+
+      btn.className = 'germ-pill px-3 py-1 rounded-xl font-bold text-white bg-emerald-600 border border-emerald-700 shadow-sm transition';
+    }
+
+    // Arranque inicial
+    initQuickList();
+    lockPart('ovocito');
+  </script>
+</body>
+</html>
